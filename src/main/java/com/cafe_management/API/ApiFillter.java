@@ -47,9 +47,7 @@ public class ApiFillter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
                 }
             }
-
             filterChain.doFilter(httpServletRequest,httpServletResponse);
-
         }
     }
 
