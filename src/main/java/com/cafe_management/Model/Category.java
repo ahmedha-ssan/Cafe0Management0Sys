@@ -9,14 +9,13 @@ import java.io.Serial;
 import java.io.Serializable;
 
 
-@NamedQuery(name ="Category.getAllCategory",query = "select c from Category c")
+@NamedQuery(name ="Category.getAllCategory",query = "select c from Category c where c.id in (select p.id from  Product p where p.status='true')")
 @Data
 @Entity
 @DynamicInsert
 @DynamicUpdate
 @Table(name="category")
 public class Category implements Serializable {
-    @Serial
     private static final long serialVersionUID = 1L;
 
     @Id
