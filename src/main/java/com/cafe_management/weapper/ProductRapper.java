@@ -22,7 +22,16 @@ public class ProductRapper {
         this.status=status;
         this.categoryId=categoryId;
         this.categoryName=categoryName;
+    }
 
-
+    public ProductRapper(Integer id,String name){
+        this.id=id;
+        this.name=name;
+    }
+    public ProductRapper(Integer id,String name,String description,Integer price){
+        this.id=id;
+        this.name=name;
+        this.description=description;
+        this.price=price;
     }
 }
