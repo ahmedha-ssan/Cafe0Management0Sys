@@ -6,6 +6,7 @@ import com.cafe_management.constents.CafeConstants;
 import com.cafe_management.dao.BillDao;
 import com.cafe_management.utils.CafeUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.io.IOUtils;
 import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,14 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -28,6 +35,7 @@ public class BillServiceImpl implements BillService{
     ApiFillter apiFillter;
     @Autowired
     BillDao billDao;
+
     @Override
     public ResponseEntity<String> generateReport(Map<String, Object> requestMap) {
         log.info("INSIDE GENERATE REPORT...");
@@ -85,6 +93,8 @@ public class BillServiceImpl implements BillService{
         }
         return CafeUtils.getResponseEntity(CafeConstants.Something_Went_Wrong, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+
 
 
     private void setRectangleInPdf(Document document) throws DocumentException{
@@ -162,5 +172,63 @@ public class BillServiceImpl implements BillService{
                 requestMap.containsKey("total");
 
 
+    }
+
+    @Override
+    public ResponseEntity<List<Bill>> gatBills() {
+        List<Bill> list = new ArrayList<>();
+        if (apiFillter.isAdmin()){
+            list = billDao.getAllBills();
+        }else {
+            list = billDao.getBillByUserName(apiFillter.getCurrentUser());
+        }
+        return new ResponseEntity<>(list,HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getPdf(Map<String, Object> requestMap) {
+        try {
+           byte[] bytes= new byte[0];
+           if (!requestMap.containsKey("uuid")&& ValidateRequestMap(requestMap)){
+               return new ResponseEntity<>(bytes,HttpStatus.BAD_REQUEST);
+           }
+           String filePath= CafeConstants.STORE_LOCATION+"\\"+(String) requestMap.get("uuid")+".pdf";
+           if (CafeUtils.isFileExist(filePath)){
+               bytes = getByteArray(filePath);
+               return new ResponseEntity<>(bytes,HttpStatus.OK);
+           }else {
+               requestMap.put("isGenerate",false);
+               generateReport(requestMap);
+               bytes = getByteArray(filePath);
+               return new ResponseEntity<>(bytes,HttpStatus.OK);
+           }
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+
+
+    private byte[] getByteArray(String filePath) throws Exception{
+        File initFial = new File(filePath);
+        InputStream targetStream = new FileInputStream(initFial);
+        byte[] bytes = IOUtils.toByteArray(targetStream);
+        targetStream.close();
+        return bytes;
+    }
+    @Override
+    public ResponseEntity<String> deleteBill(Integer id) {
+        try {
+            Optional optional = billDao.findById(id);
+            if (!optional.isEmpty()){
+                billDao.deleteById(id);
+                return CafeUtils.getResponseEntity("Bill deleted successfullly...",HttpStatus.OK);
+            }
+            return CafeUtils.getResponseEntity("Bill id does not exist",HttpStatus.OK);
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+        return CafeUtils.getResponseEntity(CafeConstants.Something_Went_Wrong,HttpStatus.BAD_REQUEST);
     }
 }
